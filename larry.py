@@ -12,6 +12,25 @@ from time import time as give_time
 
 
 def butter_lowpass_filt(N, fmax, data, sr):
+    """
+    Apply a lowpass Butterworth filter to the given data.
+
+    Parameters
+    ----------
+    N : int
+        The order of the filter.
+    fmax : float
+        The critical frequency of the filter in Hz.
+    data : array_like
+        The input signal data to be filtered.
+    sr : float
+        The sampling rate of the data in Hz.
+
+    Returns
+    -------
+    y : ndarray
+        The filtered output signal.
+    """
     from scipy.signal import butter, lfilter
 
     b, a = butter(N=N, Wn=fmax, btype="low", fs=sr)
@@ -19,14 +38,24 @@ def butter_lowpass_filt(N, fmax, data, sr):
     return lfilter(b, a, data)
 
 
-# THESE ARE ALL FROM "CMMR_class.py" (Arthur's file from CMMR meeting prep)
-
-
 def gaussian(mu, sigma, t):
-    # x = (1/(np.sqrt(2*np.pi*sigma**2)))*np.exp(-((t-mu)/(np.sqrt(2)*sigma))**2)
-    x = np.exp(
-        -(((t - mu) / (np.sqrt(2) * sigma)) ** 2)
-    )  # unscaled version, but who cares?
+    """Compute a gaussian function with mean and std `mu` and `sigma`.
+
+    Parameters
+    ----------
+    mu : float
+        Center of the gaussian.
+    sigma : float
+        Standard deviation of the gaussian.
+    t : array-like
+        Time, in the same units as `mu` and `sigma`.
+
+    Returns
+    -------
+    x : array-like
+        Gaussian function evaluated at `t`.
+    """
+    x = np.exp(-(((t - mu) / (np.sqrt(2) * sigma)) ** 2))
     x = x / np.amax(x)
     return x
 
@@ -38,64 +67,25 @@ def phi(alpha, t):
     return x
 
 
-def EuclDistance(pt1, pt2):
-    """Calculate the Euclidian distance between two points defined by their coordinates
-    $d = \sqrt{(pt2[0]-pt1[0])^2+(pt2[1]-pt1[1])^2}$ in the 2-d case
-    $d = \sqrt{\sum_{i=0}^{n-1}{pt2[i]-pt1[i])^2}}$ in the n-d case
-
-    IN:
-        - pt1: a point defined by a list (or array) of coordinates
-        - pt2: another point defined by a list (or array) of coordinates
-    OUT:
-        - dist: the Euclidian distance between these two points
+def running_mean(x, M):
     """
-    # n_dims = len(pt1) # number of dimensions
-    # sum__ = 0
+    Apply an M-point moving-average filter to the input array x.
 
-    # for i in range(n_dims):
-    # 	sum__ = sum__ + (pt2[i]-pt1[i])**2
-    # dist = np.sqrt(sum__)
-    dist = np.sqrt(np.sum((np.asarray(pt1) - np.asarray(pt2)) ** 2))
-    return dist
+    Parameters
+    ----------
+    x : array_like
+        The input array to be filtered.
+    M : int
+        The width (in samples) of the moving-average window.
 
+    Returns
+    -------
+    xavg : ndarray
+        The filtered array.
 
-def Coordinates_Polygon(center, n_vertices, radius, angle_shift):
-    """Calculate the coordinates of the vertices of a polygon, given a center, a radius, and a number of vertices
-    For now it only works in the 2d-case, more dimensions to come!
-
-    IN:
-        - center: the coordinates (2-element array or list) of the center of the polygon
-        - n_vertices: the number of vertices (e.g. 5 for a pentagon, 6 for a hexagon, & please update your ancient Greek for more information)
-        - radius: all vertices will be on a circle of this radius, centered at the center of the polygon
-        - angle_shift: used to rotate the circle (angle_shift=0 will place the first point directly above the center), should be in radians
-
-    OUT:
-        - x_coords: a list of x-coordinates of the n_vertices vertices
-        - y_coords: a list of yx-coordinates of the n_vertices vertices
-    """
-    x_coords = np.zeros(n_vertices)
-    y_coords = np.zeros(n_vertices)
-
-    for k in range(n_vertices):
-        x_coords[k] = center[0] + radius * np.sin(
-            k * 2 * np.pi / n_vertices + angle_shift
-        )
-        y_coords[k] = center[1] + radius * np.cos(
-            k * 2 * np.pi / n_vertices + angle_shift
-        )
-
-    return x_coords, y_coords
-
-
-def AverageFilter(x, M):
-    """M-point moving-average filter on input array x
-
-    IN:
-        - x: input array
-        - M: width (in samples) of the moving-average window
-
-    OUT:
-        - xavg: filtered array
+    Notes
+    -----
+    This is an old function that should be re-written.
     """
     xavg = np.zeros(len(x))
 
@@ -118,46 +108,60 @@ def AverageFilter(x, M):
 
 
 def fade(inputsig, dur_fadein, dur_fadeout, fadetype, datatype):
-    """This function applies a fade in and a fade out of specific duration onto the input signal
+    """
+    Apply a fade in and a fade out of specific duration onto the input signal.
 
-    IN:
-        - inputsig: the raw signal
-        - dur_fadein: the duration of the fade in, in SAMPLES
-        - dur_fadeout: the duration of the fade out, in SAMPLES
-        - fadetype: the type of fade in and out ("lin" resp. "log" for a linear resp. logarithmic slope between 0 and 1 or 1 and 0)
-        - datatype: the type of data in the numpy array Amplitudes (such as np.float32), in order to avoid to increase the size of resulting sounds (default datatype for numpy is float64...)
-    OUT:
-        - outputsig the signal with fades"""
+    Parameters
+    ----------
+    inputsig : array_like
+        The raw input signal.
+    dur_fadein : int
+        The duration of the fade-in, in samples.
+    dur_fadeout : int
+        The duration of the fade-out, in samples.
+    fadetype : {'lin', 'log'}
+        The type of fade in and out. 'lin' for a linear slope between 0 and 1 (or 1 and 0),
+        'log' for a logarithmic slope between 0 and 1 (or 1 and 0).
+    datatype : data-type
+        The type of data in the numpy array `Amplitudes` (e.g., `np.float32`), to avoid
+        increasing the size of resulting sounds (default datatype for numpy is `float64`).
 
-    Amplitudes = np.ones(len(inputsig), dtype=datatype)
+    Returns
+    -------
+    outputsig : ndarray
+        The signal with applied fades.
+    """
+    amplitudes = np.ones(len(inputsig), dtype=datatype)
 
     if fadetype == "lin":
-        Amplitudes[0 : int(dur_fadein)] = np.linspace(0, 1, int(dur_fadein))
-        Amplitudes[len(inputsig) - int(dur_fadeout) : len(inputsig)] = np.linspace(
+        amplitudes[0 : int(dur_fadein)] = np.linspace(0, 1, int(dur_fadein))
+        amplitudes[len(inputsig) - int(dur_fadeout) : len(inputsig)] = np.linspace(
             1, 0, num=int(dur_fadeout)
         )
     elif fadetype == "log":
-        Amplitudes[0 : int(dur_fadein)] = np.logspace(-100, 0, num=int(dur_fadein))
-        Amplitudes[len(inputsig) - int(dur_fadeout) : len(inputsig)] = np.logspace(
+        amplitudes[0 : int(dur_fadein)] = np.logspace(-100, 0, num=int(dur_fadein))
+        amplitudes[len(inputsig) - int(dur_fadeout) : len(inputsig)] = np.logspace(
             0, -100, num=int(dur_fadeout)
         )
 
-    outputsig = Amplitudes * inputsig
+    outputsig = amplitudes * inputsig
 
     return outputsig
 
 
-def linmap(x, in_min, in_max, out_min, out_max):
-    """Just a linear mapping of incoming data "x" assumed to range within [in_min:in_max] into range [out_min:out_max]"""
-    slope = (out_max - out_min) / (in_max - in_min)
-    intercept = out_max - slope * in_max
-
-    mapped_x = slope * x + intercept
-
-    return mapped_x
-
-
 def normalization(x):
+    """Max-normalize the input `x`.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Input to be normalized.
+
+    Returns
+    -------
+    x_norm : numpy.ndarray
+        `x` normalized by its maximum absolute value.
+    """
     x = x - x.mean()
     norm = np.abs(x).max()
     if norm > 0.0:
@@ -181,6 +185,49 @@ def make_soundtrack(
     scaling_fun="lin",
     soundtrack_duration="fixed",
 ):
+    """
+    Generate a soundtrack by resampling, normalizing, and concatenating waveforms based on event catalog.
+
+    Parameters
+    ----------
+    catalog : pandas.DataFrame
+        The event catalog containing event metadata, including timestamps and scaling attributes.
+    waveforms : dict
+        Dictionary mapping event IDs to their corresponding waveform data arrays.
+    num_speakers : int
+        The number of speaker channels to generate.
+    movie_duration : float
+        The duration of the movie in seconds.
+    real_event_dur : float
+        The real duration of each event in seconds.
+    speed_factor : float
+        The factor by which to adjust the speed of the waveforms.
+    sampling_rate : float
+        The sampling rate of the input waveforms in Hz.
+    audio_sr : float
+        The desired output sampling rate in Hz.
+    energy_min : float, optional
+        The minimum energy value for scaling. If None, it is computed from the catalog. Default is None.
+    energy_max : float, optional
+        The maximum energy value for scaling. If None, it is computed from the catalog. Default is None.
+    column_for_scaling : str, optional
+        The column name in the catalog used for scaling. Default is "energy".
+    scaling_fun : str or callable, optional
+        The scaling function to use. Can be 'lin', 'log', or a custom callable. Default is 'lin'.
+    soundtrack_duration : {'fixed', 'flexible'}, optional
+        If 'fixed', the soundtrack duration is fixed and events that exceed the duration are excluded.
+        If 'flexible', the soundtrack duration adjusts to fit all events. Default is 'fixed'.
+
+    Returns
+    -------
+    tracks : ndarray
+        The generated multi-speaker soundtrack, with shape (num_speakers, int(movie_duration * audio_sr)).
+
+    Notes
+    -----
+    This function was designed for very specific needs of the Seismic Sound Lab.
+    """
+
     filenotfoundlist = []
 
     sampling_rate_accelerated_signal_hz = sampling_rate * speed_factor
@@ -221,9 +268,6 @@ def make_soundtrack(
     if energy_max is None:
         energy_max = np.max(catalog[column_for_scaling])
 
-    # for isp in range(num_speakers):
-    #    exec("track_" + str(isp + 1) + "= np.zeros(int(movie_duration*audio_sr))")
-
     # resample
     print("Resampling event waveforms...")
     tstart = give_time()
@@ -237,49 +281,48 @@ def make_soundtrack(
                 continue
             pad = len(data) - target_event_duration_samp
             if pad < 0:
-                data = data[:len(data) + pad]
+                data = data[: len(data) + pad]
             elif pad > 0:
                 data = np.pad(data, pad)
             data_rsp.append(data)
             valid_evids.append(evid)
     data_rsp = np.asarray(data_rsp)
-    #breakpoint()
+    # breakpoint()
     data_rsp = resampy.resample(
-            data_rsp,
-            sampling_rate_accelerated_signal_hz,
-            int(audio_sr),
-            filter="kaiser_fast",
-            parallel=True
-            )
+        data_rsp,
+        sampling_rate_accelerated_signal_hz,
+        int(audio_sr),
+        filter="kaiser_fast",
+        parallel=True,
+    )
     tend = give_time()
     print(f"{tend-tstart:.2f}sec to resample the waveforms!")
 
     if scaling_fun == "lin":
         scaling_fun = partial(
-                scaling_fun,
-                loglin="lin",
-                minE=energy_min,
-                maxE=energy_max,
-                )
+            scaling_fun,
+            loglin="lin",
+            minE=energy_min,
+            maxE=energy_max,
+        )
     elif scaling_fun == "log":
         scaling_fun = partial(
-                scaling_fun,
-                loglin="log",
-                minE=energy_min,
-                maxE=energy_max,
-                )
+            scaling_fun,
+            loglin="log",
+            minE=energy_min,
+            maxE=energy_max,
+        )
     else:
         print("Custom scaling function")
         scaling_fun = partial(
-                scaling_fun,
-                scaling_attr_min=energy_min,
-                scaling_attr_max=energy_max,
-                )
+            scaling_fun,
+            scaling_attr_min=energy_min,
+            scaling_attr_max=energy_max,
+        )
 
-
-    #for k in tqdm(range(len(catalog)), desc="Concatenating sounds"):
+    # for k in tqdm(range(len(catalog)), desc="Concatenating sounds"):
     for k, current_id in enumerate(tqdm(valid_evids, desc="Concatenating sounds")):
-        #current_id = catalog.index[k]
+        # current_id = catalog.index[k]
         # print(current_id, current_id in waveforms)
 
         if current_id in waveforms:
@@ -293,34 +336,14 @@ def make_soundtrack(
             ):  # Process only if the data is long enough (entire data should be 20 s @ 500 Hz)
                 # RESAMPLE
 
-                #data_resampled = resampy.resample(
-                #    data, sampling_rate_accelerated_signal_hz, int(audio_sr)
-                #)  # resample to audio rate
                 data_resampled = data_rsp[k]
                 data_norm = normalization(data_resampled)
                 if np.isnan(data_norm.max()):
                     breakpoint()
 
-                #scale_fac = scale_fac_calc(
-                #    loglin,
-                #    catalog.loc[current_id, column_for_scaling],
-                #    energy_min,
-                #    energy_max,
-                #    0.001,
-                #    1,
-                #)
                 scale_fac = scaling_fun(catalog.loc[current_id, column_for_scaling])
-                #scale_fac = scale_fac_lin2(
-                #    catalog.loc[current_id, column_for_scaling],
-                #    energy_min,
-                #    energy_max,
-                #    0.001,
-                #    1,
-                #)
 
-                data_rescaled = (
-                    data_norm * scale_fac
-                )
+                data_rescaled = data_norm * scale_fac
                 if np.isnan(data_rescaled.max()):
                     breakpoint()
 
@@ -355,6 +378,22 @@ def make_soundtrack(
 
 
 def to_db(x, base=20.0):
+    """
+    Convert a linear amplitude value to decibels (dB).
+
+    Parameters
+    ----------
+    x : float
+        The linear amplitude value to be converted.
+    base : float, optional
+        The base multiplier for the conversion. The default is 20.0.
+
+    Returns
+    -------
+    float
+        The amplitude value in decibels (dB). Returns negative
+        infinity if `x` is less than or equal to 0.
+    """
     if x > 0.0:
         return base * np.log10(x)
     else:
@@ -362,18 +401,46 @@ def to_db(x, base=20.0):
 
 
 def scale_fac_lin2(
-    scaling_attr, scaling_attr_min, scaling_attr_max, min_sf=0.001, max_sf=1.0,
-    kink_x=5.0, kink_y=0.9
+    scaling_attr,
+    scaling_attr_min,
+    scaling_attr_max,
+    min_sf=0.001,
+    max_sf=1.0,
+    kink_x=5.0,
+    kink_y=0.9,
 ):
+    """
+    Compute a piecewise linear scaling factor based on a given attribute.
+
+    Parameters
+    ----------
+    scaling_attr : float or array-like
+        The attribute value to be scaled.
+    scaling_attr_min : float
+        The minimum value of the attribute.
+    scaling_attr_max : float
+        The maximum value of the attribute.
+    min_sf : float, optional
+        The minimum scaling factor. Default is 0.001.
+    max_sf : float, optional
+        The maximum scaling factor. Default is 1.0.
+    kink_x : float, optional
+        The x-coordinate of the kink point in the normalized scale. Default is 5.0.
+    kink_y : float, optional
+        The y-coordinate of the kink point in the normalized scale. Default is 0.9.
+
+    Returns
+    -------
+    float
+        The computed scaling factor.
+    """
     scaling_attr = max(scaling_attr, scaling_attr_min)
     norm_scaling_attr = (scaling_attr - scaling_attr_min) / (
         scaling_attr_max - scaling_attr_min
     )
-    norm_kink_x = (kink_x - scaling_attr_min) / (
-            scaling_attr_max - scaling_attr_min
-            )
+    norm_kink_x = (kink_x - scaling_attr_min) / (scaling_attr_max - scaling_attr_min)
     slope1 = (kink_y - min_sf) / norm_kink_x
-    slope2 = (max_sf - kink_y) / (1. - norm_kink_x)
+    slope2 = (max_sf - kink_y) / (1.0 - norm_kink_x)
     if norm_scaling_attr <= norm_kink_x:
         scale_fac = min_sf + slope1 * norm_scaling_attr
     else:
@@ -382,6 +449,30 @@ def scale_fac_lin2(
 
 
 def scale_fac_calc(loglin, E, minE, maxE, minSF=0.001, maxSF=1):
+    """
+    Compute a scaling factor based on the given energy level and scaling method.
+
+    Parameters
+    ----------
+    loglin : {'lin', 'lin2', 'log'}
+        The scaling method to use. 'lin' for linear, 'lin2' for normalized linear,
+        and 'log' for logarithmic scaling.
+    E : float
+        The energy level to be scaled.
+    minE : float
+        The minimum energy level.
+    maxE : float
+        The maximum energy level.
+    minSF : float, optional
+        The minimum scaling factor. Default is 0.001.
+    maxSF : float, optional
+        The maximum scaling factor. Default is 1.0.
+
+    Returns
+    -------
+    float
+        The computed scaling factor.
+    """
     E = max(minE, E)
     if loglin == "lin":
         slope = (maxSF - minSF) / (maxE - minE)
@@ -398,6 +489,27 @@ def scale_fac_calc(loglin, E, minE, maxE, minSF=0.001, maxSF=1):
 def make_single_wavesound(
     num_speakers, waveform, sampling_rate, speed_factor, audio_sampling_rate
 ):
+    """
+    Generate a multi-speaker waveform by resampling and normalizing the input waveform.
+
+    Parameters
+    ----------
+    num_speakers : int
+        The number of speaker channels to generate.
+    waveform : array_like
+        The input waveform data.
+    sampling_rate : float
+        The sampling rate of the input waveform in Hz.
+    speed_factor : float
+        The factor by which to adjust the speed of the waveform.
+    audio_sampling_rate : float
+        The desired output sampling rate in Hz.
+
+    Returns
+    -------
+    tracks : numpy.ndarray
+        The generated multi-speaker waveform, with shape (num_speakers, len(data_norm)).
+    """
     # num_speakers = 2
     data = waveform
 
